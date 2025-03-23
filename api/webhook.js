@@ -30,30 +30,31 @@ export default async function handler(req) {
       if (!message) return new Response("Aucun message à traiter", { status: 200 });
 
       const from = message.from;
-      const userText = message.text.body;
+      const userText = message.text?.body || "Message vide reçu";
+      const gptReply = "Je suis là pour toi mon frère. Dis-moi ce que tu traverses.";
 
       console.log("📩 Message reçu :", userText);
 
-      // ✅ Réponse simulée (pas GPT)
-      const gptReply = "Je suis là pour toi mon frère. Dis-moi ce que tu traverses.";
+      const url = `https://graph.facebook.com/v18.0/${PHONE_NUMBER_ID}/messages`;
 
-      // Envoie la réponse vers WhatsApp
-      await axios.post(
-        `https://graph.facebook.com/v18.0/${PHONE_NUMBER_ID}/messages`,
-        {
-          messaging_product: "whatsapp",
-          to: from,
-          text: { body: gptReply },
+      const payload = {
+        messaging_product: "whatsapp",
+        to: from,
+        text: { body: gptReply },
+      };
+
+      console.log("📤 Envoi vers :", url);
+      console.log("📦 Données :", JSON.stringify(payload, null, 2));
+
+      const response = await axios.post(url, payload, {
+        headers: {
+          Authorization: `Bearer ${WHATSAPP_TOKEN}`,
+          "Content-Type": "application/json",
         },
-        {
-          headers: {
-            Authorization: `Bearer ${WHATSAPP_TOKEN}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      });
 
-      console.log("✅ Réponse envoyée à WhatsApp !");
+      console.log("✅ Réponse de Meta :", response.data);
+
       return new Response("EVENT_RECEIVED", { status: 200 });
     } catch (err) {
       console.error("❌ Erreur dans le webhook :", err.response?.data || err.message);
