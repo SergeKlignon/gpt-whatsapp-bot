@@ -24,12 +24,14 @@ export default async function handler(req, res) {
     try {
       const message = body?.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
 
-      if (!message) return res.sendStatus(200); // rien à traiter
+      if (!message) return res.sendStatus(200); // Pas de message à traiter
 
       const from = message.from;
       const userText = message.text.body;
 
-      // Appel à OpenAI GPT-4
+      console.log("📩 Message reçu :", userText);
+
+      // Appel à GPT-4 via OpenAI
       const gptResponse = await axios.post(
         "https://api.openai.com/v1/chat/completions",
         {
@@ -56,7 +58,10 @@ export default async function handler(req, res) {
 
       const gptReply = gptResponse.data.choices[0].message.content;
 
-      // Répondre via WhatsApp
+      // 📝 Affiche la réponse de GPT dans les logs
+      console.log("🤖 Réponse de GPT :", gptReply);
+
+      // Envoie la réponse à WhatsApp
       await axios.post(
         `https://graph.facebook.com/v18.0/${PHONE_NUMBER_ID}/messages`,
         {
@@ -74,7 +79,7 @@ export default async function handler(req, res) {
 
       return res.sendStatus(200);
     } catch (err) {
-      console.error("Erreur :", err.response?.data || err.message);
+      console.error("❌ Erreur dans le webhook :", err.response?.data || err.message);
       return res.sendStatus(500);
     }
   }
