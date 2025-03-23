@@ -38,7 +38,7 @@ export default async function handler(req) {
       const gptResponse = await axios.post(
         "https://api.openai.com/v1/chat/completions",
         {
-          model: "gpt-4",
+          model: "gpt-3.5-turbo", // ✅ Modèle accessible à tous
           messages: [
             {
               role: "system",
