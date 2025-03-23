@@ -33,8 +33,6 @@ export default async function handler(req) {
       const userText = message.text?.body || "Message vide reçu";
       const gptReply = "Je suis là pour toi mon frère. Dis-moi ce que tu traverses.";
 
-      console.log("📩 Message reçu :", userText);
-
       const url = `https://graph.facebook.com/v18.0/${PHONE_NUMBER_ID}/messages`;
 
       const payload = {
@@ -44,7 +42,7 @@ export default async function handler(req) {
       };
 
       console.log("📤 Envoi vers :", url);
-      console.log("📦 Données :", JSON.stringify(payload, null, 2));
+      console.log("📦 Données envoyées :", JSON.stringify(payload, null, 2));
 
       const response = await axios.post(url, payload, {
         headers: {
@@ -53,14 +51,13 @@ export default async function handler(req) {
         },
       });
 
-      console.log("✅ Réponse de Meta :", response.data);
-
+      console.log("✅ Message envoyé :", response.data);
       return new Response("EVENT_RECEIVED", { status: 200 });
     } catch (err) {
-      console.error("❌ Erreur dans le webhook :", err.response?.data || err.message);
+      const errorDetails = err.response?.data || err.message || "Erreur inconnue";
+      console.log("❌ Erreur détaillée :", JSON.stringify(errorDetails, null, 2));
       return new Response("Erreur serveur", { status: 500 });
     }
   }
 
-  return new Response("Méthode non autorisée", { status: 405 });
-}
+  return
