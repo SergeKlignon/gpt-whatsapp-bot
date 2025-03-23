@@ -60,4 +60,5 @@ export default async function handler(req) {
     }
   }
 
-  return
+  return new Response("Méthode non autorisée", { status: 405 });
+}
