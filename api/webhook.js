@@ -1,37 +1,40 @@
 import axios from "axios";
 
-export default async function handler(req, res) {
+export const config = {
+  runtime: "edge",
+};
+
+export default async function handler(req) {
+  const { method, nextUrl, body } = req;
   const VERIFY_TOKEN = "grando-token-2024";
   const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
   const WHATSAPP_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN;
   const PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
 
-  if (req.method === "GET") {
-    const mode = req.query["hub.mode"];
-    const token = req.query["hub.verify_token"];
-    const challenge = req.query["hub.challenge"];
+  if (method === "GET") {
+    const mode = nextUrl.searchParams.get("hub.mode");
+    const token = nextUrl.searchParams.get("hub.verify_token");
+    const challenge = nextUrl.searchParams.get("hub.challenge");
 
     if (mode === "subscribe" && token === VERIFY_TOKEN) {
-      return res.status(200).send(challenge);
+      return new Response(challenge, { status: 200 });
     } else {
-      return res.status(403).send("Erreur de vérification");
+      return new Response("Erreur de vérification", { status: 403 });
     }
   }
 
-  if (req.method === "POST") {
-    const body = req.body;
-
+  if (method === "POST") {
     try {
-      const message = body?.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
+      const reqBody = await req.json();
+      const message = reqBody?.entry?.[0]?.changes?.[0]?.value?.messages?.[0];
 
-      if (!message) return res.sendStatus(200); // Pas de message à traiter
+      if (!message) return new Response("Aucun message à traiter", { status: 200 });
 
       const from = message.from;
       const userText = message.text.body;
 
       console.log("📩 Message reçu :", userText);
 
-      // Appel à GPT-4 via OpenAI
       const gptResponse = await axios.post(
         "https://api.openai.com/v1/chat/completions",
         {
@@ -57,32 +60,4 @@ export default async function handler(req, res) {
       );
 
       const gptReply = gptResponse.data.choices[0].message.content;
-
-      // 📝 Affiche la réponse de GPT dans les logs
       console.log("🤖 Réponse de GPT :", gptReply);
-
-      // Envoie la réponse à WhatsApp
-      await axios.post(
-        `https://graph.facebook.com/v18.0/${PHONE_NUMBER_ID}/messages`,
-        {
-          messaging_product: "whatsapp",
-          to: from,
-          text: { body: gptReply },
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${WHATSAPP_TOKEN}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
-
-      return res.sendStatus(200);
-    } catch (err) {
-      console.error("❌ Erreur dans le webhook :", err.response?.data || err.message);
-      return res.sendStatus(500);
-    }
-  }
-
-  return res.status(405).send("Méthode non autorisée");
-}
